@@ -1,4 +1,4 @@
-import Player from './player.js';
+import Car from './car.js';
 import Game from './game.js';
 
 var CANVAS = {
@@ -8,14 +8,17 @@ var CANVAS = {
 var FRAMERATE = 60;
 
 var POPULATION_SIZE = 100;
-var NUM_INPUTS = 2;
-var NUM_OUTPUTS = 1;
+var NUM_INPUTS = 8;
+var NUM_OUTPUTS = 2;
 
+neaterJS.CONFIG.ALLOW_LOOPS = true;
 var NEAT = neaterJS.init(POPULATION_SIZE, NUM_INPUTS, NUM_OUTPUTS, neaterJS.Activations.sigmoid);
 
+console.log("LOOP");
+
 var canvas = function(p5) {
-  let game = new Game();
-  let players = [];
+  let game = new Game(CANVAS.WIDTH, CANVAS.HEIGHT, 50);
+  let cars = [];
 
   p5.preload = function() {
     // load sprites if needed
@@ -26,45 +29,66 @@ var canvas = function(p5) {
     p5.frameRate(FRAMERATE);
 
     // Setup game
-    game.setup(CANVAS.WIDTH, CANVAS.HEIGHT);
-
-    // Setup players
-    for (let i = 0; i < NEAT.population.length; i++) {
-      let player = new Player(CANVAS.WIDTH / 2, CANVAS.HEIGHT / 2, NEAT.population[i]);
-      player.setup();
-      players.push(player);
-    }
+    game.setup(p5);
   };
 
   p5.draw = function() {
+
+    if (p5.keyIsDown(87)) {
+      cars[0].accelerate();
+    }
+
+    if (p5.keyIsDown(83)) {
+      cars[0].decelerate();
+    }
+
+    if (p5.keyIsDown(65)) {
+      cars[0].turnLeft();
+    }
+
+    if (p5.keyIsDown(68)) {
+      cars[0].turnRight();
+    }
+
+    // Clear canvas
+    p5.clear();
+
     // Update game
-    game.update();
+    cars = game.update(p5, NEAT);
     game.draw(p5);
 
     // ----------------RUN SIMULATION----------------------
-    for (let i = 0; i < players.length; i++) {
-      if (players[i].isDead) {
+    for (let i = 0; i < cars.length; i++) {
+      if (cars[i].isDead) {
         continue;
       }
 
-      players[i].act();
-      players[i].update();
-      players[i].draw(p5);
+      cars[i].act();
+      cars[i].update();
+      cars[i].draw(p5);
+
+      if (p5.frameCount % 300 === 0) {
+        if (cars[i].isStucked()) {
+          cars[i].isDead = true;
+        }
+      }
     }
 
     // ----------------EVALUATE----------------------
-    if (players.every(p => p.isDead)) {
-      for (let i = 0; i < players.length; i++) {
-        // Set fitness
-        players[i].evaluate();
+    if (cars.every(p => p.isDead) && cars.length > 0) {
+      for (let i = 0; i < cars.length; i++) {
+        cars[i].evaluate();
       }
 
       NEAT.repopulate();
-      p5.setup();
+      game.reset();
+      // p5.setup();
     }
   };
 
-  p5.mouseClicked = function() {};
+  p5.mouseClicked = function() {
+    game.addVertex(p5);
+  };
 };
 
 new p5(canvas, 'canvas');
