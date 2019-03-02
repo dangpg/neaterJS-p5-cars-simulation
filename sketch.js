@@ -14,8 +14,6 @@ var NUM_OUTPUTS = 2;
 neaterJS.CONFIG.ALLOW_LOOPS = true;
 var NEAT = neaterJS.init(POPULATION_SIZE, NUM_INPUTS, NUM_OUTPUTS, neaterJS.Activations.sigmoid);
 
-console.log("LOOP");
-
 var canvas = function(p5) {
   let game = new Game(CANVAS.WIDTH, CANVAS.HEIGHT, 50);
   let cars = [];
@@ -60,6 +58,11 @@ var canvas = function(p5) {
     // ----------------RUN SIMULATION----------------------
     for (let i = 0; i < cars.length; i++) {
       if (cars[i].isDead) {
+        continue;
+      }
+
+      if (cars[i].numCompletedLaps > 9) {
+        cars[i].isDead = true;
         continue;
       }
 

@@ -41,8 +41,6 @@ export default class Game {
         this.cars.push(car);
       }
 
-      // console.log((this.startPos.angle * 180) / Math.PI);
-
       this.mode = MODES.RACE;
       return this.cars;
     } else if (this.mode === MODES.RACE) {
@@ -55,9 +53,7 @@ export default class Game {
         }
 
         // set car's scores
-        if (this.checkScoreCollision(p5, aliveCar, this.goalLines)) {
-          aliveCar.score++;
-        }
+        this.checkScoreCollision(p5, aliveCar, this.goalLines);
 
         // set cars' sensor values
         for (let j = 0, len2 = aliveCar.numSensors; j < len2; j++) {
@@ -85,7 +81,7 @@ export default class Game {
                 lowestInnerDistance = sensorValue;
               }
             }
-            
+
             let outerhit = p5.collideLineLine(
               sensor.x1,
               sensor.y1,
@@ -108,7 +104,7 @@ export default class Game {
             if (lowestInnerDistance < aliveCar.sensorStrength && lowestInnerDistance < lowestOuterDistance) {
               aliveCar.sensorValues[j] = lowestInnerDistance;
             }
-      
+
             if (lowestOuterDistance < aliveCar.sensorStrength && lowestOuterDistance < lowestInnerDistance) {
               aliveCar.sensorValues[j] = lowestOuterDistance;
             }
@@ -183,30 +179,24 @@ export default class Game {
 
   checkScoreCollision(p5, car, goalLines) {
     for (let i = 0; i < goalLines.length; i++) {
-      let hit = p5.collideLineRect(
+      let hit = p5.collideLinePoly(
         goalLines[i].x1,
         goalLines[i].y1,
         goalLines[i].x2,
         goalLines[i].y2,
-        car.x - car.width / 2,
-        car.y - car.height / 2,
-        car.width,
-        car.height
+        car.getCarVertices(p5)
       );
 
-      if (hit) {
-        if (car.lasthit == undefined) {
-          car.lasthit = i;
-        }
+      if (hit && i === car.nextHit) {
+        car.lastHit = i;
+        car.nextHit = car.lastHit === goalLines.length - 1 ? 0 : car.lastHit + 1;
+        car.score += goalLines[i].score;
 
-        car.nexthit = car.lasthit == goalLines.length - 1 ? 0 : car.lasthit + 1;
-        if (i == car.nexthit) {
-          car.lasthit = i;
-          return true;
+        if (car.lastHit === 0) {
+          car.numCompletedLaps++;
         }
       }
     }
-    return false;
   }
 
   checkCollision(p5, car, innerVertices, outerVertices) {
@@ -214,25 +204,19 @@ export default class Game {
       let nextIndex = i === innerVertices.length - 1 ? 0 : i + 1;
 
       let hit =
-        p5.collideLineRect(
+        p5.collideLinePoly(
           innerVertices[i].x,
           innerVertices[i].y,
           innerVertices[nextIndex].x,
           innerVertices[nextIndex].y,
-          car.x - car.width / 2,
-          car.y - car.height / 2,
-          car.width,
-          car.height
+          car.getCarVertices(p5)
         ) ||
-        p5.collideLineRect(
+        p5.collideLinePoly(
           outerVertices[i].x,
           outerVertices[i].y,
           outerVertices[nextIndex].x,
           outerVertices[nextIndex].y,
-          car.x - car.width / 2,
-          car.y - car.height / 2,
-          car.width,
-          car.height
+          car.getCarVertices(p5)
         );
 
       if (hit) return true;
@@ -273,15 +257,6 @@ export default class Game {
       let nx2 = this.vertices[i].x + udy * this.trackWidth;
       let ny2 = this.vertices[i].y - udx * this.trackWidth;
 
-      if (i == 0) {
-        this.startLine = { x1: nx + dx * 0.5, y1: ny + dy * 0.5, x2: nx2 + dx * 0.5, y2: ny2 + dy * 0.5 };
-        this.startPos = { x: this.vertices[0].x + dx * 0.5, y: this.vertices[0].y + dy * 0.5 };
-
-        let xx = this.startLine.x1 - this.startLine.x2;
-        let yy = this.startLine.y1 - this.startLine.y2;
-        this.startPos.angle = Math.atan(xx / yy);
-      }
-
       let numOfGoalLines = Math.floor(len / 25);
 
       outerLines.push({ x1: nx - dx, y1: ny - dy, x2: nx + dx * 2, y2: ny + dy * 2 });
@@ -293,7 +268,11 @@ export default class Game {
           y1: ny + (j / numOfGoalLines) * dy + udx * this.trackWidth,
           x2: nx2 + (j / numOfGoalLines) * dx + udy * this.trackWidth,
           y2: ny2 + (j / numOfGoalLines) * dy - udx * this.trackWidth,
-          section: i
+          section: i,
+          x1Orig: nx + (j / numOfGoalLines) * dx,
+          y1Orig: ny + (j / numOfGoalLines) * dy,
+          x2Orig: nx2 + (j / numOfGoalLines) * dx,
+          y2Orig: ny2 + (j / numOfGoalLines) * dy
         };
 
         this.goalLines.push(goalline);
@@ -365,10 +344,41 @@ export default class Game {
         );
 
       if (hit) {
-        filteredGoalLines.push(this.goalLines[i]);
+        filteredGoalLines.push({
+          x1: this.goalLines[i].x1Orig,
+          y1: this.goalLines[i].y1Orig,
+          x2: this.goalLines[i].x2Orig,
+          y2: this.goalLines[i].y2Orig,
+          section: this.goalLines[i].section
+        });
       }
     }
 
     this.goalLines = filteredGoalLines;
+
+    // first goalLine == startLine
+    let xx = this.goalLines[0].x1 - this.goalLines[0].x2;
+    let yy = this.goalLines[0].y1 - this.goalLines[0].y2;
+    this.startLine = {
+      x1: this.goalLines[0].x1,
+      y1: this.goalLines[0].y1,
+      x2: this.goalLines[0].x2,
+      y2: this.goalLines[0].y2
+    };
+    this.startPos = {
+      x: (this.goalLines[0].x1 + this.goalLines[0].x2) / 2,
+      y: (this.goalLines[0].y1 + this.goalLines[0].y2) / 2,
+      angle: Math.atan(xx / yy)
+    };
+
+    for (let i = 0; i < this.goalLines.length; i++) {
+      if (i == 0) {
+        this.goalLines[i].score = 10;
+        continue;
+      }
+
+      let numLinesInSection = this.goalLines.filter(g => g.section === this.goalLines[i].section).length;
+      this.goalLines[i].score = 1 / numLinesInSection;
+    }
   }
 }

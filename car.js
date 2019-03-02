@@ -14,10 +14,28 @@ export default class Car {
     this.sensorValues = [];
     this.sensors = [];
     this.sensorStrength = 1000;
-    
+
     this.lastScore = 0;
-    this.lastHit;
-    this.nextHit;
+    this.lastHit = 0;
+    this.nextHit = 1;
+    this.numCompletedLaps = 0;
+  }
+
+  getCarVertices(p5) {
+    let cornerVertices = [];
+    cornerVertices.push(this.getPointRotated(p5, -this.width / 2, -this.height / 2));
+    cornerVertices.push(this.getPointRotated(p5, this.width / 2, -this.height / 2));
+    cornerVertices.push(this.getPointRotated(p5, this.width / 2, this.height / 2));
+    cornerVertices.push(this.getPointRotated(p5, -this.width / 2, this.height / 2));
+
+    return cornerVertices;
+  }
+
+  getPointRotated(p5, xOffset, yOffset) {
+    let rotatedX = this.x + xOffset * Math.cos(this.angle) - yOffset * Math.sin(this.angle);
+    let rotatedY = this.y + xOffset * Math.sin(this.angle) + yOffset * Math.cos(this.angle);
+
+    return p5.createVector(rotatedX, rotatedY);
   }
 
   setup() {
@@ -46,10 +64,15 @@ export default class Car {
     p5.pop();
   }
 
+  drawScores(p5) {
+    p5.text(this.score, 15, 15);
+  }
+
   draw(p5) {
     p5.push();
     p5.rectMode(p5.CENTER);
     p5.translate(this.x, this.y);
+    // this.drawScores(p5);
     p5.rotate(this.angle);
     p5.fill(255);
     p5.rect(0, 0, this.width, this.height);
@@ -103,7 +126,7 @@ export default class Car {
   }
 
   evaluate() {
-    this.brain.setFitness(this.score);
+    this.brain.setFitness(Math.pow(Math.E, this.score));
   }
 
   accelerate() {
