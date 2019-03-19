@@ -31,9 +31,10 @@ export default class Game {
     this.cars = [];
   }
 
-  update(p5, NEAT) {
-    // insert code here which gets triggered every time the canvas gets redrawn
-    if (this.mode === MODES.DRAWTRACK) {
+  update(p5, NEAT, trackWidth) {
+    if (this.mode === MODES.SETUP) {
+      this.previewTrack(p5, trackWidth);
+    } else if (this.mode === MODES.DRAWTRACK) {
       // Setup players
       for (let i = 0; i < NEAT.population.length; i++) {
         let car = new Car(this.startPos.x, this.startPos.y, this.startPos.angle, NEAT.population[i]);
@@ -116,9 +117,49 @@ export default class Game {
     return this.cars;
   }
 
+  previewTrack(p5, trackWidth) {
+    p5.push();
+    p5.textSize(20);
+    p5.fill(0, 0, 0, 150);
+    p5.stroke(0, 0, 0, 50);
+    p5.textAlign(p5.CENTER, p5.CENTER);
+    if (this.vertices.length === 0) {
+      p5.push();
+      p5.fill(0, 0, 0, 0);
+      p5.circle(p5.mouseX, p5.mouseY, trackWidth);
+      p5.pop();
+      p5.text('Use the mouse to draw the race track! :)', p5.width / 2, p5.height / 2);
+    } else if (this.vertices.length === 1){ 
+      let vertex1 = p5.createVector(this.vertices[0].x, this.vertices[0].y);
+      let vertex2 = p5.createVector(p5.mouseX, p5.mouseY);
+      let vertices = this.calculateVertices(p5, vertex1, vertex2);
+
+      p5.line(vertices[0].x, vertices[0].y, vertices[1].x, vertices[1].y);
+      p5.line(vertices[2].x, vertices[2].y, vertices[3].x, vertices[3].y);
+    } else if (p5.collidePointRect(p5.mouseX, p5.mouseY, this.vertices[0].x, this.vertices[0].y, 10, 10)){
+      
+      let vertex1 = p5.createVector(this.vertices[this.vertices.length - 1].x, this.vertices[this.vertices.length - 1].y);
+      let vertex2 = p5.createVector(this.vertices[0].x, this.vertices[0].y);
+      let vertices = this.calculateVertices(p5, vertex1, vertex2);
+
+      p5.line(vertices[0].x, vertices[0].y, vertices[1].x, vertices[1].y);
+      p5.line(vertices[2].x, vertices[2].y, vertices[3].x, vertices[3].y);
+    } else {
+      let vertex1 = p5.createVector(this.vertices[this.vertices.length - 1].x, this.vertices[this.vertices.length - 1].y);
+      let vertex2 = p5.createVector(p5.mouseX, p5.mouseY);
+      let vertices = this.calculateVertices(p5, vertex1, vertex2);
+
+      p5.line(vertices[0].x, vertices[0].y, vertices[1].x, vertices[1].y);
+      p5.line(vertices[2].x, vertices[2].y, vertices[3].x, vertices[3].y);
+    }
+    p5.pop();
+  }
+
   draw(p5) {
     switch (this.mode) {
       case MODES.SETUP: {
+        p5.push();
+        p5.rectMode(p5.CENTER);
         for (let i = 0; i < this.vertices.length; i++) {
           if (
             i == 0 &&
@@ -133,6 +174,7 @@ export default class Game {
           p5.fill(0);
           p5.text(i, this.vertices[i].x + 20, this.vertices[i].y + 20);
         }
+        p5.pop();
         break;
       }
 
@@ -236,6 +278,28 @@ export default class Game {
       this.vertices.push({ x: p5.mouseX, y: p5.mouseY });
     }
   }
+
+  calculateVertices(p5, vertex1, vertex2) {
+    let dx = vertex2.x - vertex1.x;
+    let dy = vertex2.y - vertex1.y;
+    let len = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+    let udx = dx / len;
+    let udy = dy / len;
+    let nx = vertex1.x - udy * this.trackWidth;
+    let ny = vertex1.y + udx * this.trackWidth;
+    let nx2 = vertex1.x + udy * this.trackWidth;
+    let ny2 = vertex1.y - udx * this.trackWidth;
+
+    let outputVertices = [];
+    outputVertices.push(p5.createVector(nx, ny));
+    outputVertices.push(p5.createVector(nx + dx, ny + dy));
+    outputVertices.push(p5.createVector(nx2, ny2));
+    outputVertices.push(p5.createVector(nx2 + dx, ny2 + dy));
+
+    return outputVertices;
+  }
+
+  calculateSection(p5, lastVertex, newVertex) {}
 
   calculateTrack(p5) {
     let outerLines = [];
