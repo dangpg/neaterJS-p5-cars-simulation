@@ -14,7 +14,7 @@ var NUM_OUTPUTS = 2;
 // neaterJS.CONFIG.ALLOW_LOOPS = true;
 var NEAT;
 
-var TRACK_WIDTH;
+var TRACK_WIDTH = 50;
 var TRACK_WIDTH_SLIDER;
 var TRACK_WIDTH_TEXT;
 
@@ -26,6 +26,11 @@ var canvas = function(p5) {
 
   p5.preload = function() {
     // load sprites if needed
+    TRACK_WIDTH_SLIDER = p5.createSlider(15, 100, 50).parent('game-options');
+    TRACK_WIDTH_TEXT = p5.createSpan('Track width: ' + TRACK_WIDTH + 'px').parent('game-options');
+
+    RESET_BUTTON = p5.createButton('RESET');
+    RESET_BUTTON.mousePressed(p5.setup);
   };
 
   p5.setup = function() {
@@ -34,12 +39,7 @@ var canvas = function(p5) {
     p5.createCanvas(CANVAS.WIDTH, CANVAS.HEIGHT);
     p5.frameRate(FRAMERATE);
 
-    TRACK_WIDTH = 50;
-    TRACK_WIDTH_SLIDER = p5.createSlider(15, 100, 50).parent('game-options');
-    TRACK_WIDTH_TEXT = p5.createSpan('Track width: ' + TRACK_WIDTH + 'px').parent('game-options');
-
-    RESET_BUTTON = p5.createButton('RESET');
-    RESET_BUTTON.mousePressed(p5.setup);
+    resetGUI();
     positionGUI();
 
     // Setup game
@@ -135,9 +135,17 @@ var canvas = function(p5) {
     }
   }
 
-  function updateGUI() {
-    TRACK_WIDTH = TRACK_WIDTH_SLIDER.value();
+  function resetGUI() {
+    TRACK_WIDTH = 50;
+    TRACK_WIDTH_SLIDER.value(TRACK_WIDTH);
     TRACK_WIDTH_TEXT.html('Track width: ' + TRACK_WIDTH + 'px');
+  }
+
+  function updateGUI() {
+    if (TRACK_WIDTH_SLIDER.value() !== TRACK_WIDTH) {
+      TRACK_WIDTH = TRACK_WIDTH_SLIDER.value();
+      TRACK_WIDTH_TEXT.html('Track width: ' + TRACK_WIDTH + 'px');
+    }
   }
 
   function clickOnGUI() {

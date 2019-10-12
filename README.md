@@ -3,6 +3,7 @@ TODO:
 * Show preview of the constructed map
 * Add button to ask whether track is ok
 * Add GUI for parameters
+* Add option to delete vertices
 * Punish cars for going backwards
 
 * Add score and round indicators to cars
