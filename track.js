@@ -2,6 +2,8 @@ export default class Track {
   constructor(p5) {
     this.p5 = p5;
     this.vertices = [];
+    this.aVertices = [];
+    this.bVertices = [];
 
     this.p5.rectMode(this.p5.CENTER);
   }
@@ -20,6 +22,11 @@ export default class Track {
     
     this.p5.rect(currMouseVector.x, currMouseVector.y, 10, 10);
 
+    if (this.vertices.length == 0) {
+      // no vertices to derive a preview from
+      return;
+    }
+
     if (this.vertices.length > 0) {
       let outputVertices = this.calculateSection(this.vertices[this.vertices.length - 1], currMouseVector);
       this.p5.fill('red');
@@ -33,6 +40,7 @@ export default class Track {
   }
 
   mouseClicked() {
+    // TODO: remove vertices
     this.vertices.push(this.p5.createVector(this.p5.mouseX, this.p5.mouseY));
   }
 
